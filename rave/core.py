@@ -550,12 +550,17 @@ class ModelCheckpoint(pl.callbacks.ModelCheckpoint):
 
 
 def get_valid_extensions():
-    import torchaudio
-    backend = torchaudio.get_audio_backend()
-    if backend in ["sox_io", "sox"]:
-        return ['.'+f for f in torchaudio.utils.sox_utils.list_read_formats()]
-    elif backend == "ffmpeg":
-        return ['.'+f for f in torchaudio.utils.ffmpeg_utils.get_audio_decoders()]
-    elif backend == "soundfile":
-        return ['.wav', '.flac', '.ogg', '.aiff', '.aif', '.aifc']
+    # import torchaudio
+    # backend = torchaudio.get_audio_backend()
+    # print(f"Using torchaudio backend: {backend}")
+    # if backend in ["sox_io", "sox"]:
+    #     print(f"Using sox_io backend, listing formats...{['.'+f for f in torchaudio.utils.sox_utils.list_read_formats()]}")
+    #     return ['.'+f for f in torchaudio.utils.sox_utils.list_read_formats()]
+    # elif backend == "ffmpeg":
+    #     print(f"Using ffmpeg backend, listing formats...{['.'+f for f in torchaudio.utils.ffmpeg_utils.get_audio_decoders()]}") 
+    #     return ['.'+f for f in torchaudio.utils.ffmpeg_utils.get_audio_decoders()]
+    # elif backend == "soundfile":
+    #     print(f"Using soundfile backend, listing formats...{['.wav', '.flac', '.ogg', '.aiff', '.aif', '.aifc']}")
+    #     return ['.wav', '.flac', '.ogg', '.aiff', '.aif', '.aifc']
 
+    return ['.wav', '.flac', '.ogg', '.aiff', '.aif', '.aifc']
