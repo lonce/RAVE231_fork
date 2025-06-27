@@ -114,7 +114,17 @@ def main(argv):
                 out.append(out_tmp)
             out = torch.cat(out, -1)
         else:
-            out = model.forward(x[None])
+            #out = model.forward(x[None])
+            print(f"------decode(encode())")
+            z = model.encode(x[None])
+            print(f'---- z.shape before post_process and decode = {z.shape}')
+            z = model.encoder.reparametrize(z)[0]
+            if os.path.splitext(model_path)[1] == ".ts":
+                z = model.post_process_latent(z)
+                print(f'z.shape = {z.shape}')
+                z = model.pre_process_latent(z)
+            print(f'z.shape after pre_process_latent = {z.shape}')
+            out = model.decode(z)
 
         # save file
         cleaned_f = re.sub(d, "", f)  # remove unwanted pattern from f
