@@ -117,10 +117,10 @@ def main(argv):
             out = model.forward(x[None])
 
         # save file
-        out_path = re.sub(d, "", f)
-        out_path = os.path.join(FLAGS.out_path, f)
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        torchaudio.save(out_path, out[0].cpu(), sample_rate=model.sr)
+        cleaned_f = re.sub(d, "", f)  # remove unwanted pattern from f
+        snd_out_path = os.path.join(out_path, cleaned_f.lstrip("/"))
+        print(f"Saving output to {out_path}")
+        torchaudio.save(snd_out_path, out[0].cpu(), sample_rate=model.sr)
 
 if __name__ == "__main__": 
     app.run(main)
