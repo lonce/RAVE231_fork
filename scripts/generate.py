@@ -37,7 +37,7 @@ def main(argv):
     model_path = FLAGS.model
     paths = FLAGS.input
     # load model
-    logging.info("building rave")
+    logging.info("_building rave_")
     is_scripted = False
     if not os.path.exists(model_path):
         logging.error('path %s does not seem to exist.'%model_path)
@@ -63,7 +63,6 @@ def main(argv):
     else:
         device = torch.device('cpu')
 
-
     # make output directories
     if FLAGS.name is None:
         FLAGS.name = "_".join(os.path.basename(model_path).split('_')[:-1])
@@ -72,10 +71,13 @@ def main(argv):
 
     # parse inputs
     audio_files = sum([get_audio_files(f) for f in paths], [])
+    logging.info("_building rave_   4 get_minimum_size")
     receptive_field = rave.core.get_minimum_size(model)
+    logging.info("_building rave_   5 get_minimum_size")
 
     progress_bar = tqdm.tqdm(audio_files)
     cc.MAX_BATCH_SIZE = 8
+
 
     for i, (d, f) in enumerate(progress_bar):
         #TODO reset cache
@@ -94,7 +96,7 @@ def main(argv):
             if model.n_channels < x.shape[0]:
                 x = x[:model.n_channels]
             else:
-                print('[Warning] file %s has %d channels, butt model has %d channels ; skipping'%(f, model.n_channels))
+                print('[Warning] file %s has %d channels, but model has %d channels ; skipping'%(f, model.n_channels))
         x = x.to(device)
         if FLAGS.stream:
             if FLAGS.chunk_size:
@@ -107,6 +109,7 @@ def main(argv):
                 x = x[None]
             
             # forward into model
+            print(f' NOW Forward to model ...............')
             out = []
             for x_chunk in x:
                 x_chunk = x_chunk.to(device)
@@ -114,17 +117,16 @@ def main(argv):
                 out.append(out_tmp)
             out = torch.cat(out, -1)
         else:
-            #out = model.forward(x[None])
-            print(f"------decode(encode())")
-            z = model.encode(x[None])
-            print(f'---- z.shape before post_process and decode = {z.shape}')
-            z = model.encoder.reparametrize(z)[0]
-            if os.path.splitext(model_path)[1] == ".ts":
-                z = model.post_process_latent(z)
-                print(f'z.shape = {z.shape}')
-                z = model.pre_process_latent(z)
-            print(f'z.shape after pre_process_latent = {z.shape}')
-            out = model.decode(z)
+            
+            if 1 :
+                z = model.encode(x[None])
+                #if os.path.splitext(model_path)[1] != ".ts":
+                #    z = model.encoder.reparametrize(z)[0]
+
+                ## WRITE OUTPUT LATENTS HERE
+                out = model.decode(z)
+            else :
+                out = model.forward(x[None])
 
         # save file
         cleaned_f = re.sub(d, "", f)  # remove unwanted pattern from f

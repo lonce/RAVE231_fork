@@ -173,7 +173,9 @@ def get_minimum_size(model):
     N = 2**15
     device = next(iter(model.parameters())).device
     x = torch.randn(1, model.n_channels, N, requires_grad=True, device=device)
-    z = model.encode(x)
+    print("***>>  get_minimum_size x stats:", x.mean().item(), x.std().item())
+    z = model.encode(x/100000) #LW miminum size is the same, but latent satats aren't blown up
+    print(f'Minimum size ========== {int(x.shape[-1] / z.shape[-1])}')
     return int(x.shape[-1] / z.shape[-1])
 
 

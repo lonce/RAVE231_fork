@@ -723,21 +723,29 @@ class VariationalEncoder(nn.Module):
         self.register_buffer("warmed_up", torch.tensor(0))
 
     def reparametrize(self, z):
+        #print("*** reparametrize: input z stats:", z.mean().item(), z.std().item())
         mean, scale = z.chunk(2, 1)
         std = nn.functional.softplus(scale) + 1e-4
         var = std * std
         logvar = torch.log(var)
 
         z = torch.randn_like(mean) * std + mean
+        
         kl = (mean * mean + var - logvar - 1).sum(1).mean()
 
+        #print(f' reparameterize retruning z.shape={z.shape} and self.beta * kl = {self.beta * kl}')
         return z, self.beta * kl
 
+
+
+
     def set_warmed_up(self, state: bool):
+        print(f'WARMMMMMMMMMMMMMMM')
         state = torch.tensor(int(state), device=self.warmed_up.device)
         self.warmed_up = state
 
     def forward(self, x: torch.Tensor):
+        #print(f'*** forward encoder')
         z = self.encoder(x)
 
         if self.warmed_up:

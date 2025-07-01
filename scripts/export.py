@@ -99,6 +99,7 @@ class ScriptedRAVE(nn_tilde.Module):
                 self.sr = target_sr
 
         self.full_latent_size = pretrained.latent_size
+        print(f'ScriptedRave init with self.full_latent_size = {self.full_latent_size}')
         self.is_using_adain = False
         for m in self.modules():
             if isinstance(m, rave.blocks.AdaptiveInstanceNormalization):
@@ -116,11 +117,14 @@ class ScriptedRAVE(nn_tilde.Module):
         self.register_buffer("latent_mean", pretrained.latent_mean)
         self.register_buffer("fidelity", pretrained.fidelity)
 
+
         if isinstance(pretrained.encoder, rave.blocks.VariationalEncoder):
             latent_size = max(
                 np.argmax(pretrained.fidelity.numpy() > fidelity), 1)
+            print(f'Before power of 2 correction latent_size wants to be {latent_size}')
             latent_size = 2**math.ceil(math.log2(latent_size))
             self.latent_size = latent_size
+            print(f'ScriptedRave init with self.latent_size = latent_size = self.latent_size = {latent_size}')
 
         elif isinstance(pretrained.encoder, rave.blocks.DiscreteEncoder):
             self.latent_size = pretrained.encoder.num_quantizers
@@ -235,6 +239,7 @@ class ScriptedRAVE(nn_tilde.Module):
 
     @torch.jit.export
     def encode(self, x):
+        #print("*** encode input x stats:", x.mean().item(), x.std().item())
         if self.stereo_mode:
             if self.n_channels == 1:
                 x = x[:, 0].unsqueeze(0)
@@ -248,10 +253,12 @@ class ScriptedRAVE(nn_tilde.Module):
             x = self.resampler.to_model_sampling_rate(x)
 
         batch_size = x.shape[:-2]
+        #print(f' batch_size = {batch_size} *********************************')
         if self.input_mode == "pqmf":
             x = x.reshape(-1, 1, x.shape[-1])
             x = self.pqmf(x)
             x = x.reshape(batch_size + (-1, x.shape[-1]))
+
         elif self.input_mode == "mel":
             if self.spectrogram is not None:
                 x = self.spectrogram(x)[..., :-1]
@@ -259,6 +266,7 @@ class ScriptedRAVE(nn_tilde.Module):
             else:
                 raise RuntimeError()
         z = self.encoder(x)
+        #print("*** z = self.encoder stats:", z.mean().item(), z.std().item())
         z = self.post_process_latent(z)
         return z
 
@@ -267,6 +275,7 @@ class ScriptedRAVE(nn_tilde.Module):
 
     @torch.jit.export
     def decode(self, z, from_forward: bool = False):
+        #print(f'*** decode GOOD')
         if self.is_using_adain and not from_forward:
             self.update_adain()
         n_batch = z.shape[0]
@@ -301,6 +310,7 @@ class ScriptedRAVE(nn_tilde.Module):
         return y
 
     def forward(self, x):
+        #print(f'*** forward')
         return self.decode(self.encode(x), from_forward=True)
 
     @torch.jit.export
@@ -351,11 +361,20 @@ class ScriptedRAVE(nn_tilde.Module):
 class VariationalScriptedRAVE(ScriptedRAVE):
 
     def post_process_latent(self, z):
+        # print("1 1 1 1 1  1 1 1 1 1 1 1 post_process_latent before reparametrize: input z stats:", z.mean().item(), z.std().item())
         z = self.encoder.reparametrize(z)[0]
         z = z - self.latent_mean.unsqueeze(-1)
         z = F.conv1d(z, self.latent_pca.unsqueeze(-1))
         z = z[:, :self.latent_size]
+
+        # print(f'latent_mean stats: mean={self.latent_mean.mean()}, std={self.latent_mean.std()}')
+        # print(f'latent_pca stats: mean={self.latent_pca.mean()}, std={self.latent_pca.std()}')
+ 
+
         return z
+
+
+
 
     def pre_process_latent(self, z):
         noise = torch.randn(
@@ -517,7 +536,8 @@ def main(argv):
     else:
         logging.error("No checkpoint found")
         exit()
-    pretrained.eval()
+
+    #pretrained.eval(x)
 
     if isinstance(pretrained.encoder, rave.blocks.VariationalEncoder):
         script_class = VariationalScriptedRAVE
@@ -532,9 +552,10 @@ def main(argv):
                          "not supported for export.")
 
     logging.info("warmup pass")
-
+    #print(f'RUN PRETRAINED vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv')
     x = torch.zeros(1, pretrained.n_channels, 2**14)
-    # pretrained(x)
+    pretrained(x)
+    #print(f'RUN PRETRAINED ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
 
     logging.info("optimize model")
 

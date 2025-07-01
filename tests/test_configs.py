@@ -62,6 +62,8 @@ def test_config(config, sr, stereo):
 
     x = torch.randn(1, n_channels, 2**15)
     z, _ = model.encode(x, return_mb=True)
+    print("2 2 2 2 2 2 2 2 ptest_config before reparametrize: input z stats:", z.mean().item(), z.std().item())
+
     z, _ = model.encoder.reparametrize(z)[:2]
     y = model.decode(z)
     score = model.discriminator(y)

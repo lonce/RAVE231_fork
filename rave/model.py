@@ -265,6 +265,7 @@ class RAVE(pl.LightningModule):
         return y
 
     def forward(self, x):
+        #print(f'FORWARD / REPARAM / DECODE')
         z = self.encode(x, return_mb=False)
         z = self.encoder.reparametrize(z)[0]
         return self.decode(z)
