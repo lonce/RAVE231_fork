@@ -3,6 +3,8 @@ import pdb
 import torch, torchaudio, argparse, os, tqdm, re, gin
 import cached_conv as cc
 
+import numpy as np
+
 try:
     import rave
 except:
@@ -28,6 +30,24 @@ def get_audio_files(path):
         valid_files = list(filter(lambda x: os.path.splitext(x)[1] in valid_exts, files))
         audio_files.extend([(path, os.path.join(root, f)) for f in valid_files])
     return audio_files
+
+def write_latents(data_tensor, fname):
+    """
+    Convert tensor from [1, 4, 130] to [130, 4] and save as binary
+    """
+    # This reshapes from [1, 4, 130] to [130, 4]
+    data_reshaped = data_tensor.squeeze(0).transpose(0, 1)  # now [130, 4]
+
+    # Convert to numpy and ensure float32 for Max/MSP compatibility
+    data_np = data_reshaped.numpy().astype(np.float32)
+
+    print(f"Original shape: {data_tensor.shape}")
+    print(f"Reshaped for Max: {data_np.shape}")  # Should be [130, 4]
+    print(f"First few samples:\n{data_np[:5]}")
+
+    # Save as binary file for Max/MSP
+    data_np.tofile(fname+'_4d.raw')
+
 
 
 def main(argv):
@@ -124,6 +144,9 @@ def main(argv):
                 #    z = model.encoder.reparametrize(z)[0]
 
                 ## WRITE OUTPUT LATENTS HERE
+                print(f"encode latents z.shape = {z.shape}")
+                print("encoded latents z stats:", z.mean().item(), z.std().item())
+
                 out = model.decode(z)
             else :
                 out = model.forward(x[None])
@@ -131,8 +154,11 @@ def main(argv):
         # save file
         cleaned_f = re.sub(d, "", f)  # remove unwanted pattern from f
         snd_out_path = os.path.join(out_path, cleaned_f.lstrip("/"))
-        print(f"Saving output to {out_path}")
+        print(f"Saving output to {snd_out_path}")
         torchaudio.save(snd_out_path, out[0].cpu(), sample_rate=model.sr)
+
+        # and write the latents
+        write_latents(z, os.path.splitext(snd_out_path)[0]) # strip the .wav file extension
 
 if __name__ == "__main__": 
     app.run(main)
