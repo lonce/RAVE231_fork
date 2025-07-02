@@ -1,33 +1,35 @@
-![rave_logo](docs/rave.png)
 
 
-# RAVE231_fork
-This fork was created so that folders of audio files could be converted to files of latents (which can then be used to train other latent-generating models).
+
+# RAVE231_fork by lonce
+This fork was created so that audio files could be converted to files of latents (which can then be used to train other latent-generating models).
 
 To set up your conda environment, run:
 ```
-rave231forksrc.sh
+source rave231forksrc.sh
 ```
 You don't need to pip install rave (and shouldn't) because you want to use the local source code as the rave module.
 To preprocess and train, I found the following to work pretty well with a db of 5 hours of wavefiles each of which is at least 12 seconds (can be more):
 
 ```
-rave preprocess --input_path path/to/waves --output_path path/to/preprocessed --channels 1
-rave train --config v2 --name foobar --db_path path/to/preprocessed/ --out_path runs/foobar --config noise --config causal --channels 1 --save_every 500000 --max_steps 200000
-rave export --run path/to/checkpoints/fname.ckpt --name foobar --output path/to/save/model --streaming True 
+> rave preprocess --input_path path/to/waves --output_path path/to/preprocessed --channels 1
+> 
+> rave train --config v2 --name foobar --db_path path/to/preprocessed/ --out_path runs/foobar --config noise --config causal --channels 1 --save_every 500000 --max_steps 200000
+> 
+> rave export --run path/to/checkpoints/fname.ckpt --name foobar --output path/to/save/model --streaming True 
 ```
-Where foobar is arbitrary, --streaming will give you decent performance using the  Max/MSP nn~ (external written by the IRCAM-acids group). 2M steps will train the VAE for 1M and then train the docoder adverserialy for another 1M. Further training might benefit quality even further. I found that setting the fidelity doesn't do anything, and it is on my agenda to fix it - however, I think it uses its default of 0.05 which works quite well and generally projects to 4 or 8 latents.
+Where foobar is arbitrary, --streaming will give you decent performance using the  Max/MSP nn~ (external written by the IRCAM-acids group). 2M steps will train the VAE for 1M and then train the docoder adverserialy for another 1M. Further training might benefit quality even further. I found that setting the fidelity doesn't do anything, and it is on my agenda to fix it - however, I think it uses its default of 0.95 which works quite well and generally projects to 4 or 8 latents.
 
 The next step is where you will be using my tweaks to save the latents for each file: 
 ```
 rave generate --model runs/foobar/export/foobar_streaming.ts --name foobar --input path/to/audiofiles --out_path path/to/_latents_and_recons
 ```
-This will create a 2 output files for each audio file in the input - one is the .raw file of latents, and the other is the decoded and reconstructed audio from those latents (which should sound close to the original).
+This will create 2 output files for each audio file in the input folder - one is the .raw file of latents, and the other is the decoded and reconstructed audio from those latents (which should sound close to the original).
 
 The rest of the README is the original from IRCAM-acids
 
 
-
+![rave_logo](docs/rave.png)
 
 # RAVE: Realtime Audio Variational autoEncoder
 
